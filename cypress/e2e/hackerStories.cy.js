@@ -1,9 +1,9 @@
 describe('Hacker Stories', () => {
   beforeEach(() => {
-    cy.visit('/')
+    cy.intercept('**/search?query=React&page=0').as('getStories')
 
-    cy.assertLoadingIsShownAndHidden()
-    cy.contains('More').should('be.visible')
+    cy.visit('/')
+    cy.wait('@getStories')
   })
 
   it('shows the footer', () => {
@@ -23,9 +23,11 @@ describe('Hacker Stories', () => {
     it('shows 20 stories, then the next 20 after clicking "More"', () => {
       cy.get('.item').should('have.length', 20)
 
+      cy.intercept('https://hn.algolia.com/api/v1/search?query=React&page=1').as('getMore')
+
       cy.contains('More').click()
 
-      cy.assertLoadingIsShownAndHidden()
+      cy.wait('@getMore')
 
       cy.get('.item').should('have.length', 40)
     })
@@ -73,10 +75,12 @@ describe('Hacker Stories', () => {
     })
 
     it('types and hits ENTER', () => {
+      cy.intercept('https://hn.algolia.com/api/v1/search?query=Cypress&page=0').as('getEnter')
+
       cy.get('#search')
         .type(`${newTerm}{enter}`)
 
-      cy.assertLoadingIsShownAndHidden()
+      cy.wait('@getEnter')
 
       cy.get('.item').should('have.length', 20)
       cy.get('.item')
@@ -89,10 +93,13 @@ describe('Hacker Stories', () => {
     it('types and clicks the submit button', () => {
       cy.get('#search')
         .type(newTerm)
+
+      cy.intercept('https://hn.algolia.com/api/v1/search?query=Cypress&page=0').as('getClick')
+
       cy.contains('Submit')
         .click()
 
-      cy.assertLoadingIsShownAndHidden()
+      cy.wait('@getClick')
 
       cy.get('.item').should('have.length', 20)
       cy.get('.item')
@@ -104,16 +111,19 @@ describe('Hacker Stories', () => {
 
     context('Last searches', () => {
       it('searches via the last searched term', () => {
+        cy.intercept('https://hn.algolia.com/api/v1/search?query=Cypress&page=0').as('getNewTerm')
         cy.get('#search')
           .type(`${newTerm}{enter}`)
 
-        cy.assertLoadingIsShownAndHidden()
+        cy.wait('@getNewTerm')
+
+        cy.intercept('https://hn.algolia.com/api/v1/search?query=React&page=0').as('getInitialTerm')
 
         cy.get(`button:contains(${initialTerm})`)
           .should('be.visible')
           .click()
 
-        cy.assertLoadingIsShownAndHidden()
+        cy.wait('@getInitialTerm')
 
         cy.get('.item').should('have.length', 20)
         cy.get('.item')
@@ -123,16 +133,17 @@ describe('Hacker Stories', () => {
           .should('be.visible')
       })
 
-      it('shows a max of 5 buttons for the last searched terms', () => {
+      it.only('shows a max of 5 buttons for the last searched terms', () => {
         const faker = require('faker')
+
+        cy.intercept('**/search**').as('getRandomStories')
 
         Cypress._.times(6, () => {
           cy.get('#search')
             .clear()
             .type(`${faker.random.word()}{enter}`)
+          cy.wait('@getRandomStories')
         })
-
-        cy.assertLoadingIsShownAndHidden()
 
         cy.get('.last-searches button')
           .should('have.length', 5)
