@@ -133,7 +133,7 @@ describe('Hacker Stories', () => {
           .should('be.visible')
       })
 
-      it.only('shows a max of 5 buttons for the last searched terms', () => {
+      it('shows a max of 5 buttons for the last searched terms', () => {
         const faker = require('faker')
 
         cy.intercept('**/search**').as('getRandomStories')
@@ -147,6 +147,20 @@ describe('Hacker Stories', () => {
 
         cy.get('.last-searches button')
           .should('have.length', 5)
+      })
+
+      it('types and submits the form directly', () => {
+        cy.get('form input[type="text"]')
+          .should('be.visible')
+          .clear()
+          .type('cypress')
+        cy.get('form').submit()
+      
+        // Assertion here
+        cy.request('https://hn.algolia.com/api/v1/search?query=cypress&page=0')
+        .then((resp) => {
+          expect(resp.status).to.eq(200)
+        })
       })
     })
   })
