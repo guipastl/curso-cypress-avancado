@@ -1,6 +1,13 @@
 describe('Hacker Stories', () => {
   beforeEach(() => {
-    cy.intercept('**/search?query=React&page=0').as('getStories')
+    cy.intercept({
+      method: 'GET',
+      pathname: '**/search',
+      query: {
+        query: 'React',
+        page: '0'
+      }
+    }).as('getStories')
 
     cy.visit('/')
     cy.wait('@getStories')
@@ -21,13 +28,20 @@ describe('Hacker Stories', () => {
     it.skip('shows the right data for all rendered stories', () => {})
 
     it('shows 20 stories, then the next 20 after clicking "More"', () => {
+      cy.intercept({
+        method: 'GET',
+        pathname: '**/search',
+        query: {
+          query: 'React',
+          page: '1'
+        }
+      }).as('getNextStories')
+      
       cy.get('.item').should('have.length', 20)
-
-      cy.intercept('https://hn.algolia.com/api/v1/search?query=React&page=1').as('getMore')
 
       cy.contains('More').click()
 
-      cy.wait('@getMore')
+      cy.wait('@getNextStories')
 
       cy.get('.item').should('have.length', 40)
     })
@@ -58,10 +72,49 @@ describe('Hacker Stories', () => {
     // Hrm, how would I simulate such errors?
     // Since I still don't know, the tests are being skipped.
     // TODO: Find a way to test them out.
-    context.skip('Errors', () => {
-      it('shows "Something went wrong ..." in case of a server error', () => {})
+    context('Errors', () => {
+      const errorMsg = 'Something went wrong ...'
+      const newTerm = 'Cypress'
 
-      it('shows "Something went wrong ..." in case of a network error', () => {})
+      // Teste quebrado - Corrigir!
+      it('shows "Something went wrong ..." in case of a server error', () => {
+        cy.intercept(
+          'GET',
+          `**/search?query=${newTerm}`,
+          { statusCode: 500 }
+        ).as('getServerFailure')
+
+        cy.visit('/')
+
+        cy.get('#search')
+          .should('be.visible')
+          .type(`${newTerm}{enter}`)
+
+        cy.wait('@getServerFailure')
+
+        cy.contains(errorMsg)
+          .should('be.visible')
+      })
+
+      // Teste quebrado - Corrigir!
+      it('shows "Something went wrong ..." in case of a network error', () => {
+        cy.intercept(
+          'GET',
+          `**/search?query=${newTerm}`,
+          { forceNetworkError: true }
+        ).as('getServerFailure')
+
+        cy.visit('/')
+
+        cy.get('#search')
+          .should('be.visible')
+          .type(`${newTerm}{enter}`)
+
+        cy.wait('@getServerFailure')
+
+        cy.contains(errorMsg)
+          .should('be.visible')
+      })
     })
   })
 
@@ -70,17 +123,20 @@ describe('Hacker Stories', () => {
     const newTerm = 'Cypress'
 
     beforeEach(() => {
+      cy.intercept(
+        'GET',
+        `**search?query=${newTerm}&page=0`
+      ).as('getNewTermStories')
+
       cy.get('#search')
         .clear()
     })
 
     it('types and hits ENTER', () => {
-      cy.intercept('https://hn.algolia.com/api/v1/search?query=Cypress&page=0').as('getEnter')
-
       cy.get('#search')
         .type(`${newTerm}{enter}`)
 
-      cy.wait('@getEnter')
+      cy.wait('@getNewTermStories')
 
       cy.get('.item').should('have.length', 20)
       cy.get('.item')
@@ -94,12 +150,10 @@ describe('Hacker Stories', () => {
       cy.get('#search')
         .type(newTerm)
 
-      cy.intercept('https://hn.algolia.com/api/v1/search?query=Cypress&page=0').as('getClick')
-
       cy.contains('Submit')
         .click()
 
-      cy.wait('@getClick')
+      cy.wait('@getNewTermStories')
 
       cy.get('.item').should('have.length', 20)
       cy.get('.item')
@@ -111,19 +165,16 @@ describe('Hacker Stories', () => {
 
     context('Last searches', () => {
       it('searches via the last searched term', () => {
-        cy.intercept('https://hn.algolia.com/api/v1/search?query=Cypress&page=0').as('getNewTerm')
         cy.get('#search')
           .type(`${newTerm}{enter}`)
 
-        cy.wait('@getNewTerm')
-
-        cy.intercept('https://hn.algolia.com/api/v1/search?query=React&page=0').as('getInitialTerm')
-
+        cy.wait('@getNewTermStories')
+        
         cy.get(`button:contains(${initialTerm})`)
           .should('be.visible')
           .click()
 
-        cy.wait('@getInitialTerm')
+        cy.wait('@getStories')
 
         cy.get('.item').should('have.length', 20)
         cy.get('.item')
