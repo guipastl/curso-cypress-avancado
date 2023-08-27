@@ -1,6 +1,6 @@
 {
   "name": "curso-cypress-avancado",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Projeto do curso avançado de Cypress da Escola TAT",
   "main": "cypress.config.js",
   "scripts": {
