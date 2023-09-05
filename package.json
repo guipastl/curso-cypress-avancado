@@ -1,12 +1,12 @@
 {
   "name": "curso-cypress-avancado",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Projeto do curso avançado de Cypress da Escola TAT",
   "main": "cypress.config.js",
   "scripts": {
     "lint": "npx standard",
     "lint:fix": "npx standard --fix",
-    "test": "cypress run",
+    "test": "cypress run --reporter nyan",
     "cy:open": "cypress open"
   },
   "standard": {
